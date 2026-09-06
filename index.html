@@ -1,1 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unwind 🌿</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
+  <!-- ░░ CONFETTI CANVAS (always in DOM) ░░ -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- ░░ STREAK TOAST ░░ -->
+  <div id="streak-toast" aria-live="polite"></div>
+
+  <!-- ░░ APP WRAPPER ░░ -->
+  <div id="app">
+
+    <!-- ═══════════════════════════════════
+         HOME SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-home" class="screen active" aria-label="Home">
+
+      <!-- Top bar -->
+      <header class="home-header">
+        <div class="app-wordmark">🌿 Unwind</div>
+        <button class="icon-btn" id="settings-btn" aria-label="Settings">⚙️</button>
+      </header>
+
+      <!-- Sunny greeting -->
+      <div class="sunny-card">
+        <div class="sunny-avatar">🦥</div>
+        <div class="sunny-bubble" id="home-greeting">Hey! Ready to unwind?</div>
+      </div>
+
+      <!-- Level + XP ring -->
+      <div class="level-hero">
+        <div class="level-ring-wrap">
+          <svg class="level-ring" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ring-track" cx="60" cy="60" r="52"/>
+            <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="52"
+                    stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+          </svg>
+          <div class="level-ring-inner">
+            <span class="level-emoji" id="home-level-emoji">🌱</span>
+            <span class="level-xp" id="home-xp">0</span>
+            <span class="level-xp-label">XP</span>
+          </div>
+        </div>
+        <div class="level-info">
+          <div class="level-title" id="home-level-name">Sprout</div>
+          <div class="level-next" id="home-xp-label">0 / 100 XP to next level</div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stat-row">
+        <div class="stat-box">
+          <span class="stat-val" id="home-lessons">0</span>
+          <span class="stat-lbl">Lessons</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="home-streak">0</span>
+          <span class="stat-lbl">Best Streak 🔥</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="home-games">0</span>
+          <span class="stat-lbl">Mini-Games</span>
+        </div>
+      </div>
+
+      <!-- CTA buttons -->
+      <button class="btn btn-primary btn-full" onclick="startLesson()">
+        📚 Start Lesson
+      </button>
+      <button class="btn btn-secondary btn-full" onclick="goTo('screen-arcade')">
+        🎮 Mini-Games
+      </button>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         SETTINGS PANEL (overlay)
+    ═══════════════════════════════════ -->
+    <div id="settings-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="overlay-card">
+        <h2>Settings ⚙️</h2>
+        <p class="small muted">Unwind is an educational game, not therapy or medical advice.</p>
+        <hr class="divider"/>
+        <h3>Crisis Support</h3>
+        <ul class="support-list">
+          <li>📞 <strong>988</strong> — Suicide &amp; Crisis Lifeline (call or text)</li>
+          <li>💬 <strong>Text HOME to 741741</strong> — Crisis Text Line</li>
+          <li>🏫 Your campus counseling center</li>
+        </ul>
+        <hr class="divider"/>
+        <button class="btn btn-danger btn-full" onclick="confirmReset()">
+          🗑️ Reset All Progress
+        </button>
+        <button class="btn btn-secondary btn-full" onclick="closeSettings()">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════
+         LESSON SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-lesson" class="screen" aria-label="Lesson">
+
+      <div class="lesson-topbar">
+        <button class="icon-btn" onclick="exitLesson()" aria-label="Exit lesson">✕</button>
+        <div class="lesson-progress-wrap" role="progressbar"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="10" id="lesson-progress-bar-wrap">
+          <div class="lesson-progress-fill" id="lesson-progress-fill"></div>
+        </div>
+        <div class="streak-badge" id="lesson-streak-badge">
+          🔥 <span id="lesson-streak-num">0</span>
+        </div>
+      </div>
+
+      <!-- Sunny inline -->
+      <div class="sunny-inline">
+        <span class="sunny-sm">🦥</span>
+        <span id="lesson-sunny-msg" class="sunny-inline-msg"></span>
+      </div>
+
+      <!-- Question card -->
+      <div class="question-card" id="question-card">
+        <p class="q-counter" id="q-counter">1 / 10</p>
+        <p class="q-text" id="q-text"></p>
+
+        <!-- Multiple choice answers -->
+        <div id="mc-choices" class="choices-grid"></div>
+
+        <!-- Type answer -->
+        <div id="type-wrap" class="type-wrap hidden">
+          <textarea id="type-input" class="type-input"
+                    placeholder="Type your answer here…" rows="3"
+                    aria-label="Your answer"></textarea>
+          <button class="btn btn-primary btn-full" id="type-submit-btn"
+                  onclick="submitTyped()">Submit ✓</button>
+        </div>
+
+        <!-- Feedback zone -->
+        <div id="feedback-zone" class="feedback-zone hidden" aria-live="polite">
+          <div class="feedback-banner" id="feedback-banner"></div>
+          <p class="feedback-explanation" id="feedback-explanation"></p>
+          <button class="btn btn-primary btn-full" id="continue-btn"
+                  onclick="nextQuestion()">Continue →</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         RESULTS SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-results" class="screen" aria-label="Lesson results">
+
+      <div class="results-header">
+        <div class="sunny-avatar large">🦥</div>
+        <h1 id="results-headline">Lesson complete!</h1>
+        <p id="results-sunny-msg" class="muted"></p>
+      </div>
+
+      <div class="results-score-big" id="results-score-big">0 / 10</div>
+
+      <div class="results-stat-row">
+        <div class="stat-box accent">
+          <span class="stat-val amber" id="res-xp-earned">+0</span>
+          <span class="stat-lbl">XP Earned</span>
+        </div>
+        <div class="stat-box accent">
+          <span class="stat-val amber" id="res-streak">0</span>
+          <span class="stat-lbl">Best Streak 🔥</span>
+        </div>
+      </div>
+
+      <div class="accuracy-section">
+        <div class="accuracy-label-row">
+          <span>Accuracy</span>
+          <span id="res-accuracy-pct">0%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="res-accuracy-bar"></div>
+        </div>
+      </div>
+
+      <div class="xp-total-row">
+        <span>Total XP</span>
+        <span class="amber bold" id="res-xp-total">0</span>
+      </div>
+
+      <!-- Level-up banner (hidden by default) -->
+      <div id="levelup-banner" class="levelup-banner hidden">
+        <div class="levelup-emoji" id="levelup-emoji">🌿</div>
+        <div>
+          <div class="levelup-title">Level Up! 🎉</div>
+          <div id="levelup-msg" class="levelup-sub"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="goTo('screen-home'); updateHome()">
+        🏠 Home
+      </button>
+      <button class="btn btn-secondary btn-full" onclick="startLesson()">
+        🔄 Play Again
+      </button>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         ARCADE SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-arcade" class="screen" aria-label="Mini-game arcade">
+
+      <header class="sub-header">
+        <button class="icon-btn" onclick="goTo('screen-home')" aria-label="Back">←</button>
+        <h2>🎮 Mini-Game Arcade</h2>
+      </header>
+
+      <p class="muted center" style="margin-bottom:20px">
+        Each game earns you <strong class="amber">+25 XP</strong>. Take your time.
+      </p>
+
+      <div class="arcade-grid">
+
+        <button class="arcade-card" onclick="goTo('screen-breathing')">
+          <span class="arcade-icon">🫁</span>
+          <span class="arcade-title">Box Breathing<br/>Boss</span>
+          <span class="arcade-xp">+25 XP</span>
+        </button>
+
+        <button class="arcade-card" onclick="initReframe(); goTo('screen-reframe')">
+          <span class="arcade-icon">🔄</span>
+          <span class="arcade-title">Reframe<br/>It</span>
+          <span class="arcade-xp">+25 XP</span>
+        </button>
+
+        <button class="arcade-card" onclick="initGrounding(); goTo('screen-grounding')">
+          <span class="arcade-icon">🖐️</span>
+          <span class="arcade-title">5-4-3-2-1<br/>Grounding</span>
+          <span class="arcade-xp">+25 XP</span>
+        </button>
+
+        <button class="arcade-card" onclick="initMyth(); goTo('screen-myth')">
+          <span class="arcade-icon">🕵️</span>
+          <span class="arcade-title">Stress Myth<br/>Buster</span>
+          <span class="arcade-xp">+25 XP</span>
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         BOX BREATHING SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-breathing" class="screen" aria-label="Box breathing game">
+
+      <header class="sub-header">
+        <button class="icon-btn" onclick="stopBreathing(); goTo('screen-arcade')"
+                aria-label="Back">←</button>
+        <h2>🫁 Box Breathing Boss</h2>
+      </header>
+
+      <p class="muted center">Breathe with the circle — 4 counts each phase, 4 rounds.</p>
+
+      <div class="breath-stage">
+        <svg id="breath-svg" viewBox="0 0 220 220" aria-label="Breathing guide circle">
+          <circle class="breath-track" cx="110" cy="110" r="90"/>
+          <circle class="breath-ring" id="breath-ring" cx="110" cy="110" r="90"
+                  stroke-dasharray="565.5" stroke-dashoffset="565.5"/>
+          <text class="breath-count-text" id="breath-count-text" x="110" y="105">4</text>
+          <text class="breath-phase-text" id="breath-phase-text" x="110" y="130">Inhale</text>
+        </svg>
+      </div>
+
+      <p class="breath-round-label" id="breath-round-label">Round 1 of 4</p>
+
+      <div id="breath-controls">
+        <button class="btn btn-primary btn-full" id="breath-start-btn"
+                onclick="startBreathing()">▶ Begin</button>
+      </div>
+
+      <div id="breath-done" class="mini-done hidden">
+        <div class="sunny-avatar">🦥</div>
+        <p class="mini-done-msg">That was beautiful. Your nervous system thanks you. 💚</p>
+        <button class="btn btn-primary btn-full"
+                onclick="awardMiniGame('breathing'); goTo('screen-arcade')">
+          Collect +25 XP 🌟
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         REFRAME IT SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-reframe" class="screen" aria-label="Reframe It game">
+
+      <header class="sub-header">
+        <button class="icon-btn" onclick="goTo('screen-arcade')" aria-label="Back">←</button>
+        <h2>🔄 Reframe It</h2>
+      </header>
+
+      <p class="muted" style="margin-bottom:16px">
+        Read the thought below. Rewrite it in a kinder, more balanced way.
+        There's no wrong answer here — just practice.
+      </p>
+
+      <div class="stressful-thought" id="reframe-thought"></div>
+
+      <label class="input-label" for="reframe-input">Your reframe:</label>
+      <textarea id="reframe-input" class="type-input" rows="3"
+                placeholder="e.g. This is hard, but I've handled tough things before…"
+                aria-label="Your reframe"></textarea>
+
+      <button class="btn btn-primary btn-full" id="reframe-submit-btn"
+              onclick="submitReframe()">Submit ✨</button>
+
+      <div id="reframe-result" class="reframe-result hidden">
+        <div class="sunny-card compact">
+          <span class="sunny-sm">🦥</span>
+          <span id="reframe-sunny-msg" class="sunny-inline-msg"></span>
+        </div>
+        <div class="model-reframe">
+          <p class="model-label">One possible reframe:</p>
+          <p id="reframe-model" class="model-text"></p>
+        </div>
+        <button class="btn btn-primary btn-full"
+                onclick="awardMiniGame('reframe'); goTo('screen-arcade')">
+          Collect +25 XP 🌟
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         5-4-3-2-1 GROUNDING SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-grounding" class="screen" aria-label="5-4-3-2-1 Grounding game">
+
+      <header class="sub-header">
+        <button class="icon-btn" onclick="goTo('screen-arcade')" aria-label="Back">←</button>
+        <h2>🖐️ 5-4-3-2-1 Grounding</h2>
+      </header>
+
+      <p class="muted" style="margin-bottom:16px">
+        Ground yourself in the present moment. Answer each sense, then tap Next.
+      </p>
+
+      <div id="grounding-step-card" class="grounding-card">
+        <div class="grounding-sense-icon" id="grounding-icon">👀</div>
+        <p class="grounding-prompt" id="grounding-prompt"></p>
+        <textarea id="grounding-input" class="type-input" rows="2"
+                  placeholder="Type what you notice…"
+                  aria-label="Grounding answer"></textarea>
+        <div id="grounding-reflection" class="grounding-reflection hidden"></div>
+      </div>
+
+      <div class="grounding-progress-dots" id="grounding-dots"></div>
+
+      <button class="btn btn-primary btn-full" id="grounding-next-btn"
+              onclick="groundingNext()">Next →</button>
+
+      <div id="grounding-done" class="mini-done hidden">
+        <div class="sunny-avatar">🦥</div>
+        <p class="mini-done-msg">You're here. You're present. That took real effort. 🌿</p>
+        <button class="btn btn-primary btn-full"
+                onclick="awardMiniGame('grounding'); goTo('screen-arcade')">
+          Collect +25 XP 🌟
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         STRESS MYTH BUSTER SCREEN
+    ═══════════════════════════════════ -->
+    <section id="screen-myth" class="screen" aria-label="Stress Myth Buster game">
+
+      <header class="sub-header">
+        <button class="icon-btn" onclick="goTo('screen-arcade')" aria-label="Back">←</button>
+        <h2>🕵️ Stress Myth Buster</h2>
+      </header>
+
+      <p class="muted" style="margin-bottom:16px">
+        Is each statement a <strong>Myth</strong> or a <strong>Fact</strong>?
+      </p>
+
+      <div id="myth-cards-wrap"></div>
+
+      <div id="myth-done" class="mini-done hidden">
+        <div class="sunny-avatar">🦥</div>
+        <p class="mini-done-msg">Myth-busting complete! The more you know, the less stress can trick you. 🕵️</p>
+        <button class="btn btn-primary btn-full"
+                onclick="awardMiniGame('myth'); goTo('screen-arcade')">
+          Collect +25 XP 🌟
+        </button>
+      </div>
+
+    </section>
+
+  </div><!-- /#app -->
+
+  <!-- ░░ FOOTER ░░ -->
+  <footer class="app-footer">
+    <span>Unwind is an educational game, not therapy or medical advice.</span>
+    <span>Crisis support: call/text <strong>988</strong> · text HOME to <strong>741741</strong></span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
